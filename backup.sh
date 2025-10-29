@@ -85,3 +85,4 @@ du -sh "$BACKUP_DIR"
 echo ""
 echo "=== كل النسخ الاحتياطية ==="
 ls -1 "$BACKUP_ROOT"
+```
