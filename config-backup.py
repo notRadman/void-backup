@@ -2,12 +2,12 @@
 """
 Config Backup Tool - Backup configs with versioning + latest for-git folder
 """
-
 import os
 import shutil
 from datetime import datetime
 from pathlib import Path
 
+MAX_BACKUPS = 5  # Maximum number of backups to keep per program
 
 def get_config_items():
     """Get all folders and files in .config"""
@@ -27,7 +27,6 @@ def get_config_items():
     
     return items
 
-
 def display_items(items):
     """Display numbered list"""
     print("\n" + "="*60)
@@ -40,7 +39,6 @@ def display_items(items):
         print(f"{idx:3d}. {item_type} {item}")
     
     print("="*60)
-
 
 def get_user_selection(max_num):
     """Get user selection"""
@@ -82,6 +80,27 @@ def get_user_selection(max_num):
         except ValueError:
             print("❌ Please enter valid numbers only!")
 
+def cleanup_old_backups(program_folder):
+    """Keep only the 5 most recent backups"""
+    if not program_folder.exists():
+        return
+    
+    # Get all backup folders sorted by name (timestamp)
+    backups = sorted(
+        [d for d in program_folder.iterdir() if d.is_dir()],
+        reverse=True  # Newest first
+    )
+    
+    # If more than MAX_BACKUPS, delete the oldest ones
+    if len(backups) > MAX_BACKUPS:
+        backups_to_delete = backups[MAX_BACKUPS:]
+        
+        for old_backup in backups_to_delete:
+            try:
+                shutil.rmtree(old_backup)
+                print(f"   🗑️  Deleted old backup: {old_backup.name}")
+            except Exception as e:
+                print(f"   ⚠️  Failed to delete {old_backup.name}: {e}")
 
 def update_for_git(item_name, source_path):
     """Update the for-git folder with latest version"""
@@ -110,7 +129,6 @@ def update_for_git(item_name, source_path):
     except Exception as e:
         print(f"   ⚠️  Failed to update for-git: {e}")
         return False
-
 
 def backup_items(items, selected_indices):
     """Backup selected items"""
@@ -161,6 +179,9 @@ def backup_items(items, selected_indices):
             # Update for-git folder
             update_for_git(item_name, source)
             
+            # Cleanup old backups (keep only 5 most recent)
+            cleanup_old_backups(program_folder)
+            
         except PermissionError:
             print("   ❌ No permission to backup!")
             fail_count += 1
@@ -179,8 +200,8 @@ def backup_items(items, selected_indices):
         print(f"\n💾 Saved to: {dotfiles_path}")
         print(f"🕐 Timestamp: {timestamp}")
         print(f"🔄 Latest versions in: {dotfiles_path}/for-git/")
+        print(f"♻️  Keeping only {MAX_BACKUPS} most recent backups per program")
         print(f"\n💡 Tip: You can 'git init' inside for-git/ and push to GitHub!")
-
 
 def show_backup_history():
     """Show backup history"""
@@ -215,7 +236,6 @@ def show_backup_history():
             print(f"   {item_type} {item.name} ({size_mb:.2f} MB)")
     
     print("="*60)
-
 
 def main():
     """Main function"""
@@ -253,7 +273,6 @@ def main():
         if choice != 'y':
             print("\n👋 Goodbye!")
             break
-
 
 if __name__ == "__main__":
     try:
